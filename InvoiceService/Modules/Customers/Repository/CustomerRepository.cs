@@ -16,7 +16,19 @@ public class CustomerRepository : ICustomerRepository
 
     public async Task<PagedResult<Customer>> GetAllAsync(PaginationParams pagination, CancellationToken ct = default)
     {
-        var query = _db.Customers.AsNoTracking().OrderBy(c => c.CompanyName);
+        var query = _db.Customers.AsNoTracking().AsQueryable();
+
+        if (!string.IsNullOrEmpty(pagination.Search))
+        {
+            var search = pagination.Search.ToLower();
+            query = query.Where(c =>
+                c.CompanyName.ToLower().Contains(search) ||
+                c.ContactPerson.ToLower().Contains(search) ||
+                c.Email.ToLower().Contains(search) ||
+                c.Address.ToLower().Contains(search));
+        }
+
+        query = query.OrderBy(c => c.CompanyName);
 
         var totalCount = await query.CountAsync(ct);
 

@@ -8,7 +8,10 @@ import { EmptyState } from '../components/EmptyState';
 import { Pagination } from '../components/Pagination';
 import { Modal } from '../components/Modal';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { FormField, inputClass } from '../components/FormField';
+import { SearchBar } from '../components/SearchBar';
 import { useToastContext } from '../context/ToastContext';
+import { validateSender, hasErrors, type FieldErrors } from '../utils/validation';
 
 const emptyForm: CreateSenderRequest = {
   companyName: '',
@@ -26,12 +29,14 @@ export function SendersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
+  const [search, setSearch] = useState('');
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<CreateSenderRequest>(emptyForm);
   const [saving, setSaving] = useState(false);
   const [formErrors, setFormErrors] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -40,14 +45,19 @@ export function SendersPage() {
     setLoading(true);
     setError(null);
     try {
-      const result = await sendersApi.list(page, 10);
+      const result = await sendersApi.list(page, 10, search || undefined);
       setData(result);
     } catch {
       setError('Failed to load senders');
     } finally {
       setLoading(false);
     }
-  }, [page]);
+  }, [page, search]);
+
+  const handleSearch = (value: string) => {
+    setSearch(value);
+    setPage(1);
+  };
 
   useEffect(() => {
     fetchData();
@@ -57,6 +67,7 @@ export function SendersPage() {
     setEditingId(null);
     setForm(emptyForm);
     setFormErrors(null);
+    setFieldErrors({});
     setModalOpen(true);
   };
 
@@ -72,10 +83,15 @@ export function SendersPage() {
       iban: sender.iban,
     });
     setFormErrors(null);
+    setFieldErrors({});
     setModalOpen(true);
   };
 
   const handleSave = async () => {
+    const errors = validateSender(form);
+    setFieldErrors(errors);
+    if (hasErrors(errors)) return;
+
     setSaving(true);
     setFormErrors(null);
     try {
@@ -130,6 +146,10 @@ export function SendersPage() {
           <Plus className="w-4 h-4" />
           Add Sender
         </button>
+      </div>
+
+      <div className="mb-4 max-w-sm">
+        <SearchBar value={search} onChange={handleSearch} placeholder="Search senders..." />
       </div>
 
       {loading && <LoadingSpinner />}
@@ -231,77 +251,66 @@ export function SendersPage() {
         <div className="space-y-4">
           {formErrors && <ErrorAlert message={formErrors} />}
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Company Name *
-              </label>
+            <FormField label="Company Name" required error={fieldErrors.companyName}>
               <input
                 type="text"
                 value={form.companyName}
                 onChange={(e) => updateField('companyName', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                className={inputClass(fieldErrors.companyName)}
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Contact Person *
-              </label>
+            </FormField>
+            <FormField label="Contact Person" required error={fieldErrors.contactPerson}>
               <input
                 type="text"
                 value={form.contactPerson}
                 onChange={(e) => updateField('contactPerson', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                className={inputClass(fieldErrors.contactPerson)}
               />
-            </div>
+            </FormField>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Address *</label>
+          <FormField label="Address" required error={fieldErrors.address}>
             <input
               type="text"
               value={form.address}
               onChange={(e) => updateField('address', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+              className={inputClass(fieldErrors.address)}
             />
-          </div>
+          </FormField>
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+            <FormField label="Email" required error={fieldErrors.email}>
               <input
                 type="email"
                 value={form.email}
                 onChange={(e) => updateField('email', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                className={inputClass(fieldErrors.email)}
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Phone *</label>
+            </FormField>
+            <FormField label="Phone" required error={fieldErrors.phone}>
               <input
                 type="tel"
                 value={form.phone}
                 onChange={(e) => updateField('phone', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                className={inputClass(fieldErrors.phone)}
               />
-            </div>
+            </FormField>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">VAT/Tax ID</label>
+            <FormField label="VAT/Tax ID" error={fieldErrors.vatTaxId}>
               <input
                 type="text"
                 value={form.vatTaxId || ''}
                 onChange={(e) => updateField('vatTaxId', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                className={inputClass(fieldErrors.vatTaxId)}
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">IBAN</label>
+            </FormField>
+            <FormField label="IBAN" error={fieldErrors.iban}>
               <input
                 type="text"
                 value={form.iban || ''}
                 onChange={(e) => updateField('iban', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                className={inputClass(fieldErrors.iban)}
               />
-            </div>
+            </FormField>
           </div>
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
             <button

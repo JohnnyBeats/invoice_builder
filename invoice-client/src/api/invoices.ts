@@ -8,9 +8,9 @@ import type {
 } from '../types';
 
 export const invoicesApi = {
-  list: (page = 1, pageSize = 10) =>
+  list: (page = 1, pageSize = 10, search?: string) =>
     api.get<PagedResult<InvoiceListResponse>>(
-      `/invoices?page=${page}&pageSize=${pageSize}`
+      `/invoices?page=${page}&pageSize=${pageSize}${search ? `&search=${encodeURIComponent(search)}` : ''}`
     ),
   get: (id: string) => api.get<InvoiceResponse>(`/invoices/${id}`),
   create: (data: CreateInvoiceRequest) =>

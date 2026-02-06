@@ -58,9 +58,10 @@ public static class CustomerEndpoints
         ICustomerService service,
         int page = 1,
         int pageSize = 10,
+        string? search = null,
         CancellationToken ct = default)
     {
-        var result = await service.GetAllAsync(new PaginationParams(page, pageSize), ct);
+        var result = await service.GetAllAsync(new PaginationParams(page, pageSize, search), ct);
         return Results.Ok(result);
     }
 

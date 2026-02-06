@@ -12,7 +12,9 @@ import type {
 import { Modal } from '../components/Modal';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ErrorAlert } from '../components/ErrorAlert';
+import { FormField, inputClass, selectClass } from '../components/FormField';
 import { useToastContext } from '../context/ToastContext';
+import { validateInvoice, hasInvoiceErrors, type FieldErrors } from '../utils/validation';
 
 interface InvoiceFormModalProps {
   editingId: string | null;
@@ -63,6 +65,8 @@ export function InvoiceFormModal({ editingId, onClose }: InvoiceFormModalProps) 
 
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [lineItemErrors, setLineItemErrors] = useState<FieldErrors[]>([]);
 
   useEffect(() => {
     const load = async () => {
@@ -129,6 +133,20 @@ export function InvoiceFormModal({ editingId, onClose }: InvoiceFormModalProps) 
   };
 
   const handleSave = async () => {
+    const errors = validateInvoice({
+      customerId,
+      senderId,
+      invoiceDate,
+      dueDate,
+      currency,
+      taxRate,
+      notes,
+      lineItems,
+    });
+    setFieldErrors(errors.fields);
+    setLineItemErrors(errors.lineItems);
+    if (hasInvoiceErrors(errors)) return;
+
     setSaving(true);
     setFormError(null);
     try {
@@ -188,12 +206,11 @@ export function InvoiceFormModal({ editingId, onClose }: InvoiceFormModalProps) 
 
           {/* Top section: Customer, Sender, Dates */}
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Customer *</label>
+            <FormField label="Customer" required error={fieldErrors.customerId}>
               <select
                 value={customerId}
                 onChange={(e) => setCustomerId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none bg-white"
+                className={selectClass(fieldErrors.customerId)}
               >
                 <option value="">Select a customer...</option>
                 {customers.map((c) => (
@@ -202,13 +219,12 @@ export function InvoiceFormModal({ editingId, onClose }: InvoiceFormModalProps) 
                   </option>
                 ))}
               </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Sender *</label>
+            </FormField>
+            <FormField label="Sender" required error={fieldErrors.senderId}>
               <select
                 value={senderId}
                 onChange={(e) => setSenderId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none bg-white"
+                className={selectClass(fieldErrors.senderId)}
               >
                 <option value="">Select a sender...</option>
                 {senders.map((s) => (
@@ -217,34 +233,31 @@ export function InvoiceFormModal({ editingId, onClose }: InvoiceFormModalProps) 
                   </option>
                 ))}
               </select>
-            </div>
+            </FormField>
           </div>
 
           <div className="grid grid-cols-4 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Invoice Date *</label>
+            <FormField label="Invoice Date" required error={fieldErrors.invoiceDate}>
               <input
                 type="date"
                 value={invoiceDate}
                 onChange={(e) => setInvoiceDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                className={inputClass(fieldErrors.invoiceDate)}
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Due Date *</label>
+            </FormField>
+            <FormField label="Due Date" required error={fieldErrors.dueDate}>
               <input
                 type="date"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                className={inputClass(fieldErrors.dueDate)}
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Currency *</label>
+            </FormField>
+            <FormField label="Currency" required error={fieldErrors.currency}>
               <select
                 value={currency}
                 onChange={(e) => setCurrency(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none bg-white"
+                className={selectClass(fieldErrors.currency)}
               >
                 {CURRENCIES.map((c) => (
                   <option key={c} value={c}>
@@ -252,9 +265,8 @@ export function InvoiceFormModal({ editingId, onClose }: InvoiceFormModalProps) 
                   </option>
                 ))}
               </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Tax Rate (%) *</label>
+            </FormField>
+            <FormField label="Tax Rate (%)" required error={fieldErrors.taxRate}>
               <input
                 type="number"
                 min={0}
@@ -262,9 +274,9 @@ export function InvoiceFormModal({ editingId, onClose }: InvoiceFormModalProps) 
                 step={0.01}
                 value={taxRate}
                 onChange={(e) => setTaxRate(parseFloat(e.target.value) || 0)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                className={inputClass(fieldErrors.taxRate)}
               />
-            </div>
+            </FormField>
           </div>
 
           {editingId && (
@@ -287,7 +299,10 @@ export function InvoiceFormModal({ editingId, onClose }: InvoiceFormModalProps) 
           {/* Line Items */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-gray-900">Line Items</h3>
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900">Line Items</h3>
+                {fieldErrors.lineItems && <p className="text-xs text-red-600 mt-0.5">{fieldErrors.lineItems}</p>}
+              </div>
               <button
                 type="button"
                 onClick={addLineItem}
@@ -327,8 +342,9 @@ export function InvoiceFormModal({ editingId, onClose }: InvoiceFormModalProps) 
                             updateLineItem(index, 'description', e.target.value)
                           }
                           placeholder="Item description"
-                          className="w-full px-2.5 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                          className={`w-full px-2.5 py-1.5 border rounded-md text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none ${lineItemErrors[index]?.description ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
                         />
+                        {lineItemErrors[index]?.description && <p className="text-xs text-red-600 mt-0.5">{lineItemErrors[index].description}</p>}
                       </td>
                       <td className="px-3 py-2">
                         <input
@@ -339,8 +355,9 @@ export function InvoiceFormModal({ editingId, onClose }: InvoiceFormModalProps) 
                           onChange={(e) =>
                             updateLineItem(index, 'quantity', parseFloat(e.target.value) || 0)
                           }
-                          className="w-full px-2.5 py-1.5 border border-gray-300 rounded-md text-sm text-right focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                          className={`w-full px-2.5 py-1.5 border rounded-md text-sm text-right focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none ${lineItemErrors[index]?.quantity ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
                         />
+                        {lineItemErrors[index]?.quantity && <p className="text-xs text-red-600 mt-0.5">{lineItemErrors[index].quantity}</p>}
                       </td>
                       <td className="px-3 py-2">
                         <input
@@ -351,8 +368,9 @@ export function InvoiceFormModal({ editingId, onClose }: InvoiceFormModalProps) 
                           onChange={(e) =>
                             updateLineItem(index, 'unitPrice', parseFloat(e.target.value) || 0)
                           }
-                          className="w-full px-2.5 py-1.5 border border-gray-300 rounded-md text-sm text-right focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                          className={`w-full px-2.5 py-1.5 border rounded-md text-sm text-right focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none ${lineItemErrors[index]?.unitPrice ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
                         />
+                        {lineItemErrors[index]?.unitPrice && <p className="text-xs text-red-600 mt-0.5">{lineItemErrors[index].unitPrice}</p>}
                       </td>
                       <td className="px-4 py-2 text-sm text-right font-mono text-gray-700">
                         {formatMoney(item.quantity * item.unitPrice)}
