@@ -7,9 +7,9 @@ import type {
 } from '../types';
 
 export const sendersApi = {
-  list: (page = 1, pageSize = 10) =>
+  list: (page = 1, pageSize = 10, search?: string) =>
     api.get<PagedResult<SenderResponse>>(
-      `/senders?page=${page}&pageSize=${pageSize}`
+      `/senders?page=${page}&pageSize=${pageSize}${search ? `&search=${encodeURIComponent(search)}` : ''}`
     ),
   get: (id: string) => api.get<SenderResponse>(`/senders/${id}`),
   create: (data: CreateSenderRequest) =>

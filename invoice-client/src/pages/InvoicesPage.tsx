@@ -8,6 +8,7 @@ import { EmptyState } from '../components/EmptyState';
 import { Pagination } from '../components/Pagination';
 import { StatusBadge } from '../components/StatusBadge';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { SearchBar } from '../components/SearchBar';
 import { useToastContext } from '../context/ToastContext';
 import { InvoiceFormModal } from './InvoiceFormModal';
 import { InvoiceViewModal } from './InvoiceViewModal';
@@ -18,6 +19,7 @@ export function InvoicesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
+  const [search, setSearch] = useState('');
 
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -30,14 +32,19 @@ export function InvoicesPage() {
     setLoading(true);
     setError(null);
     try {
-      const result = await invoicesApi.list(page, 10);
+      const result = await invoicesApi.list(page, 10, search || undefined);
       setData(result);
     } catch {
       setError('Failed to load invoices');
     } finally {
       setLoading(false);
     }
-  }, [page]);
+  }, [page, search]);
+
+  const handleSearch = (value: string) => {
+    setSearch(value);
+    setPage(1);
+  };
 
   useEffect(() => {
     fetchData();
@@ -122,6 +129,10 @@ export function InvoicesPage() {
           <Plus className="w-4 h-4" />
           New Invoice
         </button>
+      </div>
+
+      <div className="mb-4 max-w-sm">
+        <SearchBar value={search} onChange={handleSearch} placeholder="Search invoices..." />
       </div>
 
       {loading && <LoadingSpinner />}

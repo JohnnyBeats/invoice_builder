@@ -7,9 +7,9 @@ import type {
 } from '../types';
 
 export const customersApi = {
-  list: (page = 1, pageSize = 10) =>
+  list: (page = 1, pageSize = 10, search?: string) =>
     api.get<PagedResult<CustomerResponse>>(
-      `/customers?page=${page}&pageSize=${pageSize}`
+      `/customers?page=${page}&pageSize=${pageSize}${search ? `&search=${encodeURIComponent(search)}` : ''}`
     ),
   get: (id: string) => api.get<CustomerResponse>(`/customers/${id}`),
   create: (data: CreateCustomerRequest) =>

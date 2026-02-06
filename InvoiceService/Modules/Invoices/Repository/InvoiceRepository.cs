@@ -21,7 +21,20 @@ public class InvoiceRepository : IInvoiceRepository
             .Include(i => i.Sender)
             .Include(i => i.Customer)
             .Include(i => i.LineItems)
-            .OrderByDescending(i => i.InvoiceDate);
+            .AsQueryable();
+
+        if (!string.IsNullOrEmpty(pagination.Search))
+        {
+            var search = pagination.Search.ToLower();
+            query = query.Where(i =>
+                i.InvoiceNumber.ToLower().Contains(search) ||
+                i.Customer.CompanyName.ToLower().Contains(search) ||
+                i.Sender.CompanyName.ToLower().Contains(search) ||
+                i.Status.ToString().ToLower().Contains(search) ||
+                (i.Notes != null && i.Notes.ToLower().Contains(search)));
+        }
+
+        query = query.OrderByDescending(i => i.InvoiceDate);
 
         var totalCount = await query.CountAsync(ct);
 

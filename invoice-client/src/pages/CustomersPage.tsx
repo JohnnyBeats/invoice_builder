@@ -8,7 +8,10 @@ import { EmptyState } from '../components/EmptyState';
 import { Pagination } from '../components/Pagination';
 import { Modal } from '../components/Modal';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { FormField, inputClass } from '../components/FormField';
+import { SearchBar } from '../components/SearchBar';
 import { useToastContext } from '../context/ToastContext';
+import { validateCustomer, hasErrors, type FieldErrors } from '../utils/validation';
 
 const emptyForm: CreateCustomerRequest = {
   companyName: '',
@@ -25,12 +28,14 @@ export function CustomersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
+  const [search, setSearch] = useState('');
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<CreateCustomerRequest>(emptyForm);
   const [saving, setSaving] = useState(false);
   const [formErrors, setFormErrors] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -39,14 +44,19 @@ export function CustomersPage() {
     setLoading(true);
     setError(null);
     try {
-      const result = await customersApi.list(page, 10);
+      const result = await customersApi.list(page, 10, search || undefined);
       setData(result);
     } catch {
       setError('Failed to load customers');
     } finally {
       setLoading(false);
     }
-  }, [page]);
+  }, [page, search]);
+
+  const handleSearch = (value: string) => {
+    setSearch(value);
+    setPage(1);
+  };
 
   useEffect(() => {
     fetchData();
@@ -56,6 +66,7 @@ export function CustomersPage() {
     setEditingId(null);
     setForm(emptyForm);
     setFormErrors(null);
+    setFieldErrors({});
     setModalOpen(true);
   };
 
@@ -70,10 +81,15 @@ export function CustomersPage() {
       vatTaxId: customer.vatTaxId,
     });
     setFormErrors(null);
+    setFieldErrors({});
     setModalOpen(true);
   };
 
   const handleSave = async () => {
+    const errors = validateCustomer(form);
+    setFieldErrors(errors);
+    if (hasErrors(errors)) return;
+
     setSaving(true);
     setFormErrors(null);
     try {
@@ -128,6 +144,10 @@ export function CustomersPage() {
           <Plus className="w-4 h-4" />
           Add Customer
         </button>
+      </div>
+
+      <div className="mb-4 max-w-sm">
+        <SearchBar value={search} onChange={handleSearch} placeholder="Search customers..." />
       </div>
 
       {loading && <LoadingSpinner />}
@@ -223,67 +243,57 @@ export function CustomersPage() {
         <div className="space-y-4">
           {formErrors && <ErrorAlert message={formErrors} />}
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Company Name *
-              </label>
+            <FormField label="Company Name" required error={fieldErrors.companyName}>
               <input
                 type="text"
                 value={form.companyName}
                 onChange={(e) => updateField('companyName', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                className={inputClass(fieldErrors.companyName)}
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Contact Person *
-              </label>
+            </FormField>
+            <FormField label="Contact Person" required error={fieldErrors.contactPerson}>
               <input
                 type="text"
                 value={form.contactPerson}
                 onChange={(e) => updateField('contactPerson', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                className={inputClass(fieldErrors.contactPerson)}
               />
-            </div>
+            </FormField>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Address *</label>
+          <FormField label="Address" required error={fieldErrors.address}>
             <input
               type="text"
               value={form.address}
               onChange={(e) => updateField('address', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+              className={inputClass(fieldErrors.address)}
             />
-          </div>
+          </FormField>
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+            <FormField label="Email" required error={fieldErrors.email}>
               <input
                 type="email"
                 value={form.email}
                 onChange={(e) => updateField('email', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                className={inputClass(fieldErrors.email)}
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Postal Code *</label>
+            </FormField>
+            <FormField label="Postal Code" required error={fieldErrors.postalCode}>
               <input
                 type="text"
                 value={form.postalCode}
                 onChange={(e) => updateField('postalCode', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                className={inputClass(fieldErrors.postalCode)}
               />
-            </div>
+            </FormField>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">VAT/Tax ID</label>
+          <FormField label="VAT/Tax ID" error={fieldErrors.vatTaxId}>
             <input
               type="text"
               value={form.vatTaxId || ''}
               onChange={(e) => updateField('vatTaxId', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+              className={inputClass(fieldErrors.vatTaxId)}
             />
-          </div>
+          </FormField>
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
             <button
               onClick={() => setModalOpen(false)}

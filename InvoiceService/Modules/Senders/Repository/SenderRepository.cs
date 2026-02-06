@@ -16,7 +16,19 @@ public class SenderRepository : ISenderRepository
 
     public async Task<PagedResult<Sender>> GetAllAsync(PaginationParams pagination, CancellationToken ct = default)
     {
-        var query = _db.Senders.AsNoTracking().OrderBy(s => s.CompanyName);
+        var query = _db.Senders.AsNoTracking().AsQueryable();
+
+        if (!string.IsNullOrEmpty(pagination.Search))
+        {
+            var search = pagination.Search.ToLower();
+            query = query.Where(s =>
+                s.CompanyName.ToLower().Contains(search) ||
+                s.ContactPerson.ToLower().Contains(search) ||
+                s.Email.ToLower().Contains(search) ||
+                s.Phone.ToLower().Contains(search));
+        }
+
+        query = query.OrderBy(s => s.CompanyName);
 
         var totalCount = await query.CountAsync(ct);
 
