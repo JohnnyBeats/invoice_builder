@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="InvoiceService.Tests/InvoiceService.Tests.csproj" />
+  <Project Path="InvoiceService/InvoiceService.csproj" />
+</Solution>
